@@ -1,0 +1,6 @@
+// Assets: Kerala / SSF Sahithyolsav themed SVGs (data URIs)
+window.assets = [
+  { id: 'lamp', name: 'Nilavilakku', src: "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%232a2a2a' stroke-width='2'%3E%3Cellipse cx='100' cy='170' rx='60' ry='8' fill='%23f5e9d4' stroke='none'/%3E%3Cpath d='M70 160c0-20 60-20 60-60s-40-40-40-60c0 0 40 0 40-20' fill='%23ffd98a' stroke='%232a2a2a'/%3E%3C/g%3E%3C/svg%3E" },
+  { id: 'book', name: 'Book', src: "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect x='20' y='30' width='140' height='120' rx='6' fill='%23fff' stroke='%233b3b3b'/%3E%3Cpath d='M20 30c40 10 80 10 120 0' stroke='%233b3b3b' fill='none'/%3E%3Cpath d='M20 150c40-10 80-10 120 0' stroke='%233b3b3b' fill='none'/%3E%3C/svg%3E" },
+  { id: 'palm', name: 'Palm', src: "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M100 180 C95 100 110 80 100 20' stroke='%233b6b2a' stroke-width='6' fill='none'/%3E%3Cg fill='%233b6b2a' transform='translate(100,60)'%3E%3Cellipse rx='6' ry='24' transform='rotate(-30)'/%3E%3Cellipse rx='6' ry='24' transform='rotate(-10)'/%3E%3Cellipse rx='6' ry='24' transform='rotate(10)'/%3E%3Cellipse rx='6' ry='24' transform='rotate(30)'/%3E%3C/g%3E%3C/svg%3E" }
+];
