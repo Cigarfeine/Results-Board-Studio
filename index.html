@@ -3,16 +3,18 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width,initial-scale=1" />
-	<title>Results Poster Editor — Multi Poster</title>
+	<title>Results Poster Studio — Multi Poster</title>
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-	<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="css/style.css">
+	    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@500;600;700;800&family=Outfit:wght@400;600;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Poppins:wght@400;600;800&family=Noto+Sans+Malayalam:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- JSZip for bulk downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 	<div id="navbarContainer"></div>
 
 	<script>
-	// Load navbar fragment and adapt it to site's styling
+	// Load navbar fragment
 	(function(){
 	  const container = document.getElementById('navbarContainer');
 	  if(!container) return;
@@ -22,291 +24,221 @@
 	      container.innerHTML = html;
 	      const nav = container.querySelector('nav');
 	      if(!nav) return;
-	      // normalize classes to use site's navbar styles
 	      nav.className = 'navbar';
-	      // ensure inner container spacing matches site
 	      const inner = nav.querySelector('.container');
 	      if(inner) inner.style.display = 'flex';
-	      // if logo exists, ensure it fits
 	      const img = nav.querySelector('img');
 	      if(img){ img.style.height = '34px'; img.style.objectFit = 'contain'; img.style.width = 'auto'; }
-			// navbar normalized (no saved-results controls)
-		  // add verified icon button to navbar
-		  const verBtn = document.createElement('button');
-		  verBtn.id = 'verifiedIconBtn';
-		  verBtn.title = 'Verified Results';
-		  verBtn.className = 'btn ghost small';
-		  verBtn.style.display = 'flex';
-		  verBtn.style.alignItems = 'center';
-		  verBtn.style.gap = '6px';
-		  verBtn.innerHTML = '<span style="font-size:18px">✅</span>';
-		  if(inner) inner.appendChild(verBtn); else nav.appendChild(verBtn);
 	    })
 	    .catch(()=>{
-	      // fallback minimal navbar
-	      container.innerHTML = '<header class="navbar"><div class="brand">Results Poster Studio</div><div class="nav-actions"><button id="navHome" class="btn ghost">Home</button><button id="navUploadBtn" class="btn ghost">Upload Template</button></div></header>';
+	      container.innerHTML = '<header class="navbar"><div class="brand">Results Board Studio</div></header>';
 	    });
 	})();
 	</script>
 
+    <div class="pipeline-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="step-nav active" data-step="1">
+                <div class="step-num">1</div>
+                <div>
+                    <strong>Setup Template</strong>
+                    <div class="muted">Upload & configure zones</div>
+                </div>
+            </div>
+            <div class="step-nav" data-step="2">
+                <div class="step-num">2</div>
+                <div>
+                    <strong>Add Results</strong>
+                    <div class="muted">Queue your data</div>
+                </div>
+            </div>
+            <div class="step-nav" data-step="3">
+                <div class="step-num">3</div>
+                <div>
+                    <strong>Generate & Download</strong>
+                    <div class="muted">Review and export ZIP</div>
+                </div>
+            </div>
+        </aside>
 
+        <!-- Main Content Area -->
+        <main class="pipeline-main">
+            <!-- STEP 1: SETUP TEMPLATE -->
+            <section id="step1" class="step-content active">
+                <div class="card header-card">
+                    <h2>Step 1: Setup Template</h2>
+                    <p class="muted">Upload your base poster image and position the text zones. This will be used for all generated posters.</p>
+                    <div class="row" style="margin-top:12px;">
+                        <button id="uploadTemplateBtn" class="btn">Upload Template Image</button>
+                        <input type="file" id="templateFileInput" accept="image/png, image/jpeg" style="display:none">
+                        <button id="saveTemplateBtn" class="btn ghost">Save Template Config</button>
+                    </div>
+                </div>
 
-	<!-- Home view: large carousel as main page -->
-	<main id="homeView" style="display:block;">
-		<section class="hero">
-			<div class="hero-inner">
-				<div class="hero-text">
-					<h1>Create Premium Result Posters</h1>
-					<p class="lead">The website is designed to simplify the creation and publication of result posters through a template-based system. It allows users to generate professional and visually appealing result posters by selecting predefined templates and automatically populating them with relevant data. The platform streamlines the entire process, reducing manual design effort and ensuring consistency across all published results.</p>
-					<div class="hero-ctas">
-						<button id="heroCreate" class="btn">Upload Results</button>
-						<button id="heroUploadTemplate" class="btn ghost">Upload Template</button>
-						<button id="heroBrowse" class="btn ghost">Verified Results</button>
-					</div>
-				</div>
-				<div class="hero-carousel card">
-					<div class="carousel" id="carousel">
-						<button class="carousel-nav prev" id="carouselPrev">‹</button>
-						<div class="carousel-track" id="carouselTrack"></div>
-						<button class="carousel-nav next" id="carouselNext">›</button>
-					</div>
-				</div>
-			</div>
-		</section>
-		<div class="card" style="margin:0 28px 28px 28px; padding:20px">
-			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-				<div>
-					<h3 style="margin:0">Facilities</h3>
-					<div class="muted">Tools and features to speed up poster creation</div>
-				</div>
-				<div><button class="btn ghost">Explore</button></div>
-			</div>
-			<div class="facilities-grid">
-				<div class="facility-card">
-					<div class="icon">🖼️</div>
-					<h4>Templates</h4>
-					<p class="muted">Pre-built poster templates you can apply and customize.</p>
-					<div style="margin-top:10px"><button class="btn small card-settings" data-action="templates">Settings</button></div>
-				</div>
-				<div class="facility-card">
-					<div class="icon">🔧</div>
-					<h4>Custom Overlays</h4>
-					<p class="muted">Add text, images and arrange elements with drag-and-drop.</p>
-					<div style="margin-top:10px"><button class="btn small card-settings" data-action="overlays">Settings</button></div>
-				</div>
-				<div class="facility-card">
-					<div class="icon">🎨</div>
-					<h4>Theme Controls</h4>
-					<p class="muted">Switch color themes, fonts and global styles quickly.</p>
-					<div style="margin-top:10px"><button class="btn small card-settings" data-action="theme">Settings</button></div>
-				</div>
-				<div class="facility-card">
-					<div class="icon">⬇️</div>
-					<h4>Export</h4>
-					<p class="muted">Download high-resolution PNGs of your posters for print.</p>
-					<div style="margin-top:10px"><button class="btn small card-settings" data-action="export">Settings</button></div>
-				</div>
+                <div class="editor-grid" style="margin-top:20px; display:none;" id="templateEditorArea">
+                    <div class="canvas-wrap card" id="canvasWrap" style="flex-direction:column; align-items:center;">
+                        <div style="width:100%; display:flex; justify-content:flex-end; margin-bottom:12px;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="showGridToggle">
+                                <span class="slider"></span>
+                                <span class="label-text">Show Alignment Grid</span>
+                            </label>
+                        </div>
+                        <canvas id="templateCanvas" width="800" height="1200"></canvas>
+                    </div>
+                    <div class="card settings-panel" id="zoneSettingsPanel">
+                        <h3>Zone Settings</h3>
+                        <p class="muted">Select a zone on the poster to edit its properties.</p>
+                        
+                        <label>Select Zone to Edit:</label>
+                        <div id="zoneButtonGrid" class="zone-button-grid">
+                            <!-- Buttons populated by JS -->
+                        </div>
 
-				<!-- Additional cards (will not increase page height; container scrolls) -->
-				<div class="facility-card">
-					<div class="icon">⚡</div>
-					<h4>Batch Actions</h4>
-					<p class="muted">Apply edits across multiple posters in one click.</p>
-					<div style="margin-top:10px"><button class="btn small">Try</button></div>
-				</div>
-				<div class="facility-card">
-					<div class="icon">📁</div>
-					<h4>Asset Manager</h4>
-					<p class="muted">Organize and reuse uploaded images, logos and overlays.</p>
-					<div style="margin-top:10px"><button class="btn small">Open</button></div>
-				</div>
-				<div class="facility-card">
-					<div class="icon">🔍</div>
-					<h4>Preview</h4>
-					<p class="muted">View print-preview and safe-zone guides for accurate layout.</p>
-					<div style="margin-top:10px"><button class="btn small">Preview</button></div>
-				</div>
-				<div class="facility-card">
-					<div class="icon">🔒</div>
-					<h4>Permissions</h4>
-					<p class="muted">Control who can edit or export your posters.</p>
-					<div style="margin-top:10px"><button class="btn small">Manage</button></div>
-				</div>
-			</div>
-		</div>
-	</main>
+                        <label>Font Family
+                            <select id="zoneFontFamily">
+                                <option value="Montserrat">Montserrat</option>
+                                <option value="Inter">Inter</option>
+                                <option value="Outfit">Outfit</option>
+                                <option value="Poppins">Poppins</option>
+                                <option value="Playfair Display">Playfair Display</option>
+                                <option value="Noto Sans Malayalam">Noto Sans Malayalam</option>
+                            </select>
+                        </label>
+                        <label>Font Size
+                            <input type="number" id="zoneFontSize" min="10" max="200" value="48">
+                        </label>
+                        <label>Text Color
+                            <input type="color" id="zoneColor" value="#ffffff">
+                        </label>
+                        <label>Alignment
+                            <select id="zoneAlign">
+                                <option value="left">Left</option>
+                                <option value="center">Center</option>
+                                <option value="right">Right</option>
+                            </select>
+                        </label>
+                        <div class="row" style="margin-top:8px; gap:8px;">
+                            <label style="flex:1; margin-top:0;">X
+                                <input type="number" id="zoneX" step="1">
+                            </label>
+                            <label style="flex:1; margin-top:0;">Y
+                                <input type="number" id="zoneY" step="1">
+                            </label>
+                        </div>
+                        <div class="row" style="margin-top:4px; gap:4px;">
+                            <button id="alignLeftEdgeBtn" class="btn ghost small flex-1" style="font-size:11px;" title="Align to Left Edge">⇦ L-Edge</button>
+                            <button id="alignCenterBtn" class="btn ghost small flex-1" style="font-size:11px;" title="Center Horizontally">↔ Center</button>
+                            <button id="alignRightEdgeBtn" class="btn ghost small flex-1" style="font-size:11px;" title="Align to Right Edge">R-Edge ⇨</button>
+                        </div>
+                        
+                        <div class="row" style="margin-top:12px; justify-content:space-between; align-items:center;">
+                            <div class="row" style="gap:8px;">
+                                <button id="zoneBoldBtn" class="btn ghost small">Bold</button>
+                                <button id="zoneItalicBtn" class="btn ghost small">Italic</button>
+                            </div>
+                            <label class="toggle-switch" style="margin-top:0;">
+                                <input type="checkbox" id="zoneVisibleToggle" checked>
+                                <span class="slider"></span>
+                                <span class="label-text">Visible</span>
+                            </label>
+                        </div>
+                        <div style="margin-top:24px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06);">
+                            <button class="btn ghost next-step-btn" data-target="2" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px;">Continue to Add Results &rarr;</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-	<!-- Verified Results page (simple) -->
-	<section id="verifiedResultsPage" style="display:none;">
-		<div class="card" style="max-width:720px;margin:60px auto;padding:16px">
-			<h3 style="margin-top:0">Verified Results</h3>
-			<p class="muted">Capture the current posters as verified snapshots. Manage or download them from the list below.</p>
-			<div style="display:flex;gap:8px;margin-top:10px">
-				<button id="captureVerifiedBtn" class="btn">Capture</button>
-				<button id="refreshVerifiedBtn" class="btn ghost">Refresh</button>
-			</div>
-			<div style="margin-top:12px">
-				<div id="verifiedList"></div>
-			</div>
-			<div style="text-align:right;margin-top:12px"><button id="closeVerifiedBtn" class="btn ghost">Close</button></div>
-		</div>
-	</section>
+            <!-- STEP 2: ADD RESULTS -->
+            <section id="step2" class="step-content">
+                <div class="card header-card">
+                    <h2>Step 2: Add Results</h2>
+                    <p class="muted">Enter competition results. Click 'Add to Queue' for each event.</p>
+                </div>
 
-	<!-- Upload Results page (form) -->
-	<section id="uploadResultsPage" style="display:none;">
-		<div class="card" style="max-width:760px;margin:80px auto;padding:24px">
-			<h2 style="margin-top:0">Upload Results</h2>
-			<p class="muted">Enter winner names and their team names below. Use "Apply" to populate the active poster.</p>
-			<label style="display:block;margin-top:8px"><input id="uploadApplyToAll" type="checkbox"> Apply to all templates</label>
-			<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
-				<div>
-					<label>Category<input id="uploadCategory" type="text" placeholder="e.g., Science Fest"></label>
-				</div>
-				<div>
-					<label>Program<input id="uploadProgram" type="text" placeholder="e.g., Junior High"></label>
-				</div>
-				<div>
-					<label>First Prize <input id="uploadFirstName" type="text" placeholder="First prize name"></label>
-				</div>
-				<div>
-					<label>First Prize Team<input id="uploadFirstTeam" type="text" placeholder="Team name"></label>
-				</div>
-				<div>
-					<label>Second Prize Name<input id="uploadSecondName" type="text" placeholder="Second prize name"></label>
-				</div>
-				<div>
-					<label>Second Prize Team<input id="uploadSecondTeam" type="text" placeholder="Team name"></label>
-				</div>
-				<div>
-					<label>Third Prize Name<input id="uploadThirdName" type="text" placeholder="Third prize name"></label>
-				</div>
-				<div>
-					<label>Third Prize Team<input id="uploadThirdTeam" type="text" placeholder="Team name"></label>
-				</div>
-			</div>
-			<div style="display:flex;gap:12px;justify-content:flex-end;margin-top:18px">
-				<button id="uploadResultsCancel" class="btn ghost">Cancel</button>
-				<button id="uploadResultsApply" class="btn">Apply</button>
-			</div>
-			<div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px">
-				<button id="downloadAppliedBtn" class="btn">Download Applied</button>
-				<button id="revertTemplatesBtn" class="btn ghost">Revert Templates</button>
-			</div>
-		</div>
-	</section>
+                <div class="results-grid" style="margin-top:20px;">
+                    <!-- Input Form -->
+                    <div class="card" id="resultFormCard">
+                        <h3>Result Details</h3>
+                        <label>Category <input type="text" id="resCategory" placeholder="e.g., Essay Writing"></label>
+                        <label>Program <input type="text" id="resProgram" placeholder="e.g., Senior Division"></label>
+                        
+                        <hr style="margin:16px 0; border:none; border-top:1px solid rgba(255,255,255,0.06);">
+                        
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                            <label>1st Prize Name <input type="text" id="resFirst"></label>
+                            <label>1st Prize Team <input type="text" id="resFirstTeam"></label>
+                            
+                            <label>2nd Prize Name <input type="text" id="resSecond"></label>
+                            <label>2nd Prize Team <input type="text" id="resSecondTeam"></label>
+                            
+                            <label>3rd Prize Name <input type="text" id="resThird"></label>
+                            <label>3rd Prize Team <input type="text" id="resThirdTeam"></label>
+                        </div>
 
-	<!-- Hidden template file input used by upload template buttons -->
-	<input id="navTemplate" type="file" accept="image/*,.png,.jpg,.jpeg" style="display:none">
+                        <div class="row" style="margin-top:20px; justify-content:space-between; align-items:center;">
+                            <div>
+                                <input type="file" id="csvFileInput" accept=".csv" style="display:none">
+                                <button id="uploadCsvBtn" class="btn ghost small" style="border: 1px solid rgba(255,255,255,0.2);">📄 Upload CSV</button>
+                            </div>
+                            <div class="row">
+                                <button id="clearFormBtn" class="btn ghost">Clear</button>
+                                <button id="addResultBtn" class="btn">Add to Queue</button>
+                            </div>
+                        </div>
+                        <div style="margin-top:24px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06);">
+                            <button class="btn ghost next-step-btn" data-target="3" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px;">Continue to Generate &rarr;</button>
+                        </div>
+                    </div>
 
-	<!-- Results view: poster editor (hidden until 'Results' clicked) -->
-	<main id="resultsView" class="container" style="display:none">
-		<aside class="left">
-			<div class="card">
-				<div style="display:flex;justify-content:space-between;align-items:center">
-					<strong>Posters</strong>
-					<div class="list-actions">
-						<button id="addPoster" class="btn small">Add</button>
-						<button id="removePoster" class="btn ghost small">Remove</button>
-					</div>
-				</div>
-				<div class="poster-list" id="posterList"></div>
-			</div>
-			<div class="card" style="margin-top:12px">
-				<strong>Assets</strong>
-				<div id="assetsList" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
-			</div>
-		</aside>
+                    <!-- Queue List -->
+                    <div class="card" id="queueCard">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3>Queue (<span id="queueCount">0</span>)</h3>
+                        </div>
+                        <div class="queue-list" id="queueList">
+                            <div class="muted" style="padding:20px; text-align:center;">Queue is empty.</div>
+                        </div>
+                        <div class="row" style="margin-top:20px; justify-content:flex-end;">
+                            <button id="generateAllBtn" class="btn" disabled>Generate All Posters</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-		<section class="main">
-			<div class="canvas-wrap card">
-				<canvas id="posterCanvas" width="800" height="1200"></canvas>
-			</div>
-			<div style="display:flex;gap:12px">
-				<button id="downloadBtn" class="btn">Download Poster</button>
-				<button id="duplicateBtn" class="btn ghost">Duplicate</button>
-			</div>
-		</section>
+            <!-- STEP 3: GENERATE & DOWNLOAD -->
+            <section id="step3" class="step-content">
+                <div class="card header-card">
+                    <h2>Step 3: Verified Results</h2>
+                    <p class="muted">Review generated posters. Download individually or get everything in a ZIP file.</p>
+                    <div class="row" style="margin-top:12px;">
+                        <button id="downloadZipBtn" class="btn" disabled>Download All as ZIP</button>
+                        <button id="clearGalleryBtn" class="btn ghost">Clear Gallery</button>
+                    </div>
+                </div>
 
-		<aside class="right">
-			<div class="card" style="margin-top:12px" id="settingsPanel">
-				<strong>Editor</strong>
-				<label><input type="checkbox" id="applyToAll"> Apply to all posters</label>
-				<label>Template Size<select id="templateSize">
-					<option value="9:16">9:16 (1080×1920)</option>
-					<option value="4:5">4:5 (1080×1350)</option>
-					<option value="5:5">5:5 (1200×1200)</option>
-				</select></label>
-				<label>Global Font<select id="globalFont"><option>Impact</option><option>Arial</option><option>Inter</option></select></label>
-				<label>Global Color<input type="color" id="globalColor" value="#ffffff"></label>
-				<label>Global Size<input type="number" id="globalSize" value="48"></label>
-				<button id="applyGlobal" class="btn" style="margin-top:8px">Apply Global</button>
-				<hr style="margin:8px 0;border:none;border-top:1px solid rgba(16,24,40,0.04)">
-				<label>Result 1<input id="firstText" type="text" placeholder="First result"></label>
-				<label>Result 2<input id="secondText" type="text" placeholder="Second result"></label>
-				<label>Result 3<input id="thirdText" type="text" placeholder="Third result"></label>
-				<button id="applyResults" class="btn" style="margin-top:8px">Apply Results</button>
+                <!-- Generating Progress -->
+                <div id="progressArea" style="display:none; margin-top:20px;" class="card">
+                    <h3>Generating Posters...</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p class="muted" id="progressText">0 / 0</p>
+                </div>
 
-				<hr style="margin:8px 0;border:none;border-top:1px solid rgba(16,24,40,0.04)">
-				<strong style="display:block;margin-top:8px">Names & Teams</strong>
-				<label>First Name<input id="nameFirst" type="text" placeholder="First name"></label>
-				<label>First Team<input id="teamFirst" type="text" placeholder="First team"></label>
-				<label>Second Name<input id="nameSecond" type="text" placeholder="Second name"></label>
-				<label>Second Team<input id="teamSecond" type="text" placeholder="Second team"></label>
-				<label>Third Name<input id="nameThird" type="text" placeholder="Third name"></label>
-				<label>Third Team<input id="teamThird" type="text" placeholder="Third team"></label>
-				<button id="applyNames" class="btn" style="margin-top:8px">Apply Names</button>
-				<hr style="margin:8px 0;border:none;border-top:1px solid rgba(16,24,40,0.04)">
-				<label>Overlay<select id="selectOverlay"></select></label>
-				<label>Text<input id="overlayText" type="text"></label>
-				<label>Font<select id="fontFamily"><option>Impact</option><option>Arial</option><option>Inter</option></select></label>
-				<label>Size<input id="fontSize" type="number" value="48"></label>
-				<label>Color<input id="fontColor" type="color" value="#ffffff"></label>
-				<div style="display:flex;gap:8px;margin-top:8px">
-					<button id="boldBtn" class="btn small">B</button>
-					<button id="italicBtn" class="btn small">I</button>
-					<button id="centerBtn" class="btn small">Align</button>
-				</div>
-			</div>
-		</aside>
-	</main>
+                <!-- Gallery Grid -->
+                <div class="gallery-grid" id="galleryGrid" style="margin-top:20px;">
+                    <div class="muted" style="padding:20px; grid-column:1/-1; text-align:center;">No posters generated yet.</div>
+                </div>
+            </section>
+        </main>
+    </div>
 
-	<footer>
-		Built with care — Results Poster Studio
-	</footer>
+	<!-- Hidden image used for offscreen canvas batch generation -->
+	<img id="offscreenTemplateImg" style="display:none;" crossorigin="anonymous">
 
-		<!-- Bottom control cards (fixed above footer) -->
-		<div class="bottom-cards" aria-hidden="false">
-			<div class="bottom-card">
-				<div class="bc-title">Notifications</div>
-				<label class="switch">
-					<input type="checkbox" checked>
-					<span class="slider"></span>
-				</label>
-			</div>
-			<div class="bottom-card">
-				<div class="bc-title">Auto-save</div>
-				<label class="switch">
-					<input type="checkbox">
-					<span class="slider"></span>
-				</label>
-			</div>
-			<div class="bottom-card">
-				<div class="bc-title">Show Grid</div>
-				<label class="switch">
-					<input type="checkbox" checked>
-					<span class="slider"></span>
-				</label>
-			</div>
-			<div class="bottom-card">
-				<div class="bc-title">Compact Mode</div>
-				<label class="switch">
-					<input type="checkbox">
-					<span class="slider"></span>
-				</label>
-			</div>
-		</div>
-
-	<script src="js/assets.js"></script>
 	<script src="js/app.js"></script>
 </body>
 </html>

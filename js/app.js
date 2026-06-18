@@ -1,506 +1,726 @@
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Core elements
-  const canvas = document.getElementById('posterCanvas');
-  const ctx = canvas.getContext('2d');
-  const posterListEl = document.getElementById('posterList');
-  const addPosterBtn = document.getElementById('addPoster');
-  const removePosterBtn = document.getElementById('removePoster');
-  const navUploadBtn = document.getElementById('navUploadBtn');
-  const navTemplateInput = document.getElementById('navTemplate');
-  const openSettingsBtn = document.getElementById('openSettings');
-  const settingsPanel = document.getElementById('settingsPanel');
-  const applyToAllChk = document.getElementById('applyToAll');
-  const applyGlobalBtn = document.getElementById('applyGlobal');
-  const globalFont = document.getElementById('globalFont');
-  const globalColor = document.getElementById('globalColor');
-  const globalSize = document.getElementById('globalSize');
-  const templateSize = document.getElementById('templateSize');
+document.addEventListener('DOMContentLoaded', () => {
 
-  const firstText = document.getElementById('firstText');
-  const secondText = document.getElementById('secondText');
-  const thirdText = document.getElementById('thirdText');
-  const applyResults = document.getElementById('applyResults');
-
-  // names & teams inputs
-  const nameFirst = document.getElementById('nameFirst');
-  const teamFirst = document.getElementById('teamFirst');
-  const nameSecond = document.getElementById('nameSecond');
-  const teamSecond = document.getElementById('teamSecond');
-  const nameThird = document.getElementById('nameThird');
-  const teamThird = document.getElementById('teamThird');
-  const applyNamesBtn = document.getElementById('applyNames');
-
-  const selectOverlay = document.getElementById('selectOverlay');
-  const overlayText = document.getElementById('overlayText');
-  const fontFamily = document.getElementById('fontFamily');
-  const fontSize = document.getElementById('fontSize');
-  const fontColor = document.getElementById('fontColor');
-  const boldBtn = document.getElementById('boldBtn');
-  const italicBtn = document.getElementById('italicBtn');
-  const centerBtn = document.getElementById('centerBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const duplicateBtn = document.getElementById('duplicateBtn');
-
-  // Assets UI root
-  const assetsListEl = document.getElementById('assetsList');
-
-  // Navbar brand logos container
-  const brandLogosEl = document.getElementById('brandLogos');
-
-  // Posters store
-  let posters = [];
-  let activeIndex = -1;
-
-  function makeEmptyPoster(name){
-    return {
-      id: Date.now()+Math.random(),
-      name: name || `Poster ${posters.length+1}`,
-      bgSrc: null,
-      bgImage: null,
-      width:800,
-      height:1200,
-      overlays:[
-        {id:0,type:'text',label:'First',text:'',x:400,y:200,fontSize:64,color:'#ffffff',fontFamily:'Impact',bold:true,italic:false,align:'center'},
-        {id:1,type:'text',label:'Second',text:'',x:400,y:340,fontSize:48,color:'#ffffff',fontFamily:'Arial',bold:false,italic:false,align:'center'},
-        {id:2,type:'text',label:'Third',text:'',x:400,y:480,fontSize:40,color:'#ffffff',fontFamily:'Arial',bold:false,italic:false,align:'center'},
-        {id:3,type:'text',label:'Team 1',text:'',x:400,y:240,fontSize:28,color:'#ffffff',fontFamily:'Inter',bold:false,italic:false,align:'center'},
-        {id:4,type:'text',label:'Team 2',text:'',x:400,y:380,fontSize:22,color:'#ffffff',fontFamily:'Inter',bold:false,italic:false,align:'center'},
-        {id:5,type:'text',label:'Team 3',text:'',x:400,y:520,fontSize:20,color:'#ffffff',fontFamily:'Inter',bold:false,italic:false,align:'center'}
-      ]
+    // --- State ---
+    let templateImage = null; // HTMLImageElement
+    let defaultTemplateConfig = {
+        bgSrc: null,
+        width: 1080,
+        height: 1080,
+        zones: [
+            { id: 'category', label: 'Category', text: 'Essay Writing', x: 260, y: 320, fontSize: 42, fontFamily: 'Poppins', color: '#333333', bold: true, italic: false, align: 'left' },
+            { id: 'program', label: 'Program', text: 'Senior Division', x: 260, y: 380, fontSize: 32, fontFamily: 'Inter', color: '#689d62', bold: false, italic: false, align: 'left' },
+            { id: 'first_name', label: '1st Name', text: 'John Doe', x: 260, y: 475, fontSize: 46, fontFamily: 'Playfair Display', color: '#333333', bold: true, italic: false, align: 'left' },
+            { id: 'first_team', label: '1st Team', text: 'Blue House', x: 800, y: 475, fontSize: 30, fontFamily: 'Inter', color: '#777777', bold: false, italic: false, align: 'right' },
+            { id: 'second_name', label: '2nd Name', text: 'Jane Smith', x: 260, y: 585, fontSize: 42, fontFamily: 'Playfair Display', color: '#333333', bold: true, italic: false, align: 'left' },
+            { id: 'second_team', label: '2nd Team', text: 'Red House', x: 800, y: 585, fontSize: 26, fontFamily: 'Inter', color: '#777777', bold: false, italic: false, align: 'right' },
+            { id: 'third_name', label: '3rd Name', text: 'Sam Wilson', x: 260, y: 690, fontSize: 42, fontFamily: 'Playfair Display', color: '#333333', bold: true, italic: false, align: 'left' },
+            { id: 'third_team', label: '3rd Team', text: 'Green House', x: 800, y: 690, fontSize: 26, fontFamily: 'Inter', color: '#777777', bold: false, italic: false, align: 'right' }
+        ]
     };
-  }
+    let templateConfig = JSON.parse(JSON.stringify(defaultTemplateConfig));
 
-  function addPoster(name){
-    const p = makeEmptyPoster(name);
-    // if user selected a template size, initialize poster to that size
-    if(templateSize){ const v = templateSize.value; const map = getSizeForKey(v); if(map){ p.width = map.w; p.height = map.h; // position overlays relative to center
-        p.overlays.forEach(o=>{ o.x = (o.x / 800) * p.width; o.y = (o.y / 1200) * p.height; if(o.w) o.w = (o.w / 800) * p.width; if(o.h) o.h = (o.h / 1200) * p.height; if(o.fontSize) o.fontSize = Math.max(10, Math.round((o.fontSize / 1200) * p.height)); }); } }
-    posters.push(p);
-    renderPosterList();
-    selectPoster(posters.length-1);
-  }
+    let resultsQueue = []; // array of result objects
+    let generatedPosters = []; // array of { result, dataURL }
 
-  function getSizeForKey(key){
-    if(!key) return null;
-    if(key === '9:16') return {w:1080, h:1920};
-    if(key === '4:5') return {w:1080, h:1350};
-    if(key === '5:5') return {w:1200, h:1200};
-    return null;
-  }
+    // --- DOM Elements ---
+    // Navigation
+    const stepNavs = document.querySelectorAll('.step-nav');
+    const stepContents = document.querySelectorAll('.step-content');
 
-  function setPosterSize(p, newW, newH){
-    if(!p) return;
-    const oldW = p.width || canvas.width || 800;
-    const oldH = p.height || canvas.height || 1200;
-    const sx = newW / oldW;
-    const sy = newH / oldH;
-    // scale overlays positions and dimensions
-    p.overlays.forEach(o=>{
-      o.x = Math.round((o.x || 0) * sx);
-      o.y = Math.round((o.y || 0) * sy);
-      if(o.w) o.w = Math.round(o.w * sx);
-      if(o.h) o.h = Math.round((o.h || o.w) * sy);
-      if(o.fontSize) o.fontSize = Math.max(8, Math.round(o.fontSize * Math.min(sx, sy)));
+    // Step 1: Template
+    const uploadTemplateBtn = document.getElementById('uploadTemplateBtn');
+    const resetLayoutBtn = document.getElementById('resetLayoutBtn');
+    const templateFileInput = document.getElementById('templateFileInput');
+    const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+    const templateEditorArea = document.getElementById('templateEditorArea');
+    const canvas = document.getElementById('templateCanvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+    
+    const zoneButtonGrid = document.getElementById('zoneButtonGrid');
+    const zoneFontFamily = document.getElementById('zoneFontFamily');
+    const zoneFontSize = document.getElementById('zoneFontSize');
+    const zoneColor = document.getElementById('zoneColor');
+    const zoneAlign = document.getElementById('zoneAlign');
+    const zoneBoldBtn = document.getElementById('zoneBoldBtn');
+    const zoneItalicBtn = document.getElementById('zoneItalicBtn');
+    const showGridToggle = document.getElementById('showGridToggle');
+    const zoneX = document.getElementById('zoneX');
+    const zoneY = document.getElementById('zoneY');
+    const zoneVisibleToggle = document.getElementById('zoneVisibleToggle');
+
+    // Step 2: Form
+    const resCategory = document.getElementById('resCategory');
+    const resProgram = document.getElementById('resProgram');
+    const resFirst = document.getElementById('resFirst');
+    const resFirstTeam = document.getElementById('resFirstTeam');
+    const resSecond = document.getElementById('resSecond');
+    const resSecondTeam = document.getElementById('resSecondTeam');
+    const resThird = document.getElementById('resThird');
+    const resThirdTeam = document.getElementById('resThirdTeam');
+    const addResultBtn = document.getElementById('addResultBtn');
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    
+    // Trigger preview redraw on input
+    [resCategory, resProgram, resFirst, resFirstTeam, resSecond, resSecondTeam, resThird, resThirdTeam].forEach(el => {
+        if(el) el.addEventListener('input', renderTemplatePreview);
     });
-    p.width = newW; p.height = newH;
-    if(p.bgImage){ /* background image will be stretched when drawn */ }
-  }
 
-  function duplicatePoster(index){
-    const src = posters[index];
-    const copy = JSON.parse(JSON.stringify(src));
-    copy.id = Date.now()+Math.random();
-    copy.name = src.name + ' copy';
-    if(src.bgSrc){
-      copy.bgImage = new Image();
-      copy.bgImage.onload = ()=>{ if(index===activeIndex) render(); };
-      copy.bgImage.src = src.bgSrc;
-    }
-    posters.push(copy);
-    renderPosterList();
-    selectPoster(posters.length-1);
-  }
+    const queueList = document.getElementById('queueList');
+    const queueCount = document.getElementById('queueCount');
+    const generateAllBtn = document.getElementById('generateAllBtn');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const uploadCsvBtn = document.getElementById('uploadCsvBtn');
+    const alignLeftEdgeBtn = document.getElementById('alignLeftEdgeBtn');
+    const alignCenterBtn = document.getElementById('alignCenterBtn');
+    const alignRightEdgeBtn = document.getElementById('alignRightEdgeBtn');
 
-  function removePoster(index){
-    if(posters.length<=1) return alert('Keep at least one poster');
-    posters.splice(index,1);
-    const newIndex = Math.max(0,index-1);
-    renderPosterList();
-    selectPoster(newIndex);
-  }
+    // Step 3: Gallery
+    const galleryGrid = document.getElementById('galleryGrid');
+    const downloadZipBtn = document.getElementById('downloadZipBtn');
+    const clearGalleryBtn = document.getElementById('clearGalleryBtn');
+    const progressArea = document.getElementById('progressArea');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
 
-  function renderPosterList(){
-    posterListEl.innerHTML = '';
-    posters.forEach((p,i)=>{
-      const el = document.createElement('div');
-      el.className = 'poster-item' + (i===activeIndex? ' active':'');
-      el.innerHTML = `<div style="flex:1">${p.name}</div><div class="muted">${p.bgSrc? 'Template' : 'Blank'}</div>`;
-      el.addEventListener('click', ()=>selectPoster(i));
-      posterListEl.appendChild(el);
+    const offscreenTemplateImg = document.getElementById('offscreenTemplateImg');
+
+    // --- Navigation Logic ---
+    stepNavs.forEach(nav => {
+        nav.addEventListener('click', () => {
+            stepNavs.forEach(n => n.classList.remove('active'));
+            stepContents.forEach(c => c.classList.remove('active'));
+            nav.classList.add('active');
+            document.getElementById(`step${nav.dataset.step}`).classList.add('active');
+            
+            if (nav.dataset.step === '1') renderTemplatePreview();
+        });
     });
-  }
 
-  function updateOverlaySelect(){
-    const p = posters[activeIndex];
-    selectOverlay.innerHTML = '';
-    p.overlays.forEach((o,idx)=>{
-      const opt = document.createElement('option'); opt.value = String(idx); opt.textContent = o.label || (o.type === 'image' ? (o.name||'Image') : `Text ${idx+1}`);
-      selectOverlay.appendChild(opt);
-    });
-  }
-
-  function selectPoster(i){
-    if(i<0 || i>=posters.length) return;
-    activeIndex = i;
-    renderPosterList();
-    loadActivePosterToUI();
-    render();
-  }
-
-  function loadActivePosterToUI(){
-    const p = posters[activeIndex];
-    updateOverlaySelect();
-    selectOverlay.value = '0';
-    const o = p.overlays[0];
-    overlayText.value = o.text || '';
-    fontFamily.value = o.fontFamily || '';
-    fontSize.value = o.fontSize || 48;
-    fontColor.value = o.color || '#ffffff';
-  }
-
-  function render(){
-    const p = posters[activeIndex];
-    if(!p) return;
-    canvas.width = p.width; canvas.height = p.height;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(p.bgImage){ ctx.drawImage(p.bgImage,0,0,canvas.width,canvas.height); } else { ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height); }
-
-    p.overlays.forEach((o,idx)=>{
-      if(o.type === 'image'){
-        if(!o.img){ o.img = new Image(); o.img.src = o.src; o.w = o.w || Math.min(200, canvas.width*0.18); o.h = o.h || (o.w * (o.img.height || 1) / (o.img.width || 1)); o.img.onload = ()=>{ o.w = o.w || o.img.width; o.h = o.h || o.img.height; render(); }; }
-        const iw = o.w || 120; const ih = o.h || 120;
-        ctx.drawImage(o.img, o.x - iw/2, o.y - ih/2, iw, ih);
-        if(idx===Number(selectOverlay.value)){ ctx.save(); ctx.strokeStyle='#7c3aed'; ctx.setLineDash([6,4]); ctx.strokeRect(o.x - iw/2 -6, o.y - ih/2 -6, iw+12, ih+12); ctx.restore(); }
-      } else {
-        const fs = Number(o.fontSize);
-        ctx.font = `${o.bold? 'bold ' : ''}${o.italic? 'italic ' : ''}${fs}px ${o.fontFamily}`;
-        ctx.fillStyle = o.color || '#000'; ctx.textAlign = o.align || 'center'; ctx.textBaseline = 'top'; ctx.lineWidth = Math.max(2, Math.round(fs/18)); ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-        const lines = String(o.text).split('\n'); let y = o.y; lines.forEach(line=>{ ctx.strokeText(line,o.x,y); ctx.fillText(line,o.x,y); y += fs*1.1; });
-        if(idx===Number(selectOverlay.value)){ const metrics = ctx.measureText(lines[0]||''); const w = metrics.width; const h = fs*lines.length*1.1; const left = (o.align==='center')? o.x-w/2 : (o.align==='right'? o.x-w : o.x); ctx.save(); ctx.strokeStyle='#7c3aed'; ctx.setLineDash([6,4]); ctx.strokeRect(left-6,o.y-6,w+12,h+12); ctx.restore(); }
-      }
-    });
-  }
-
-  function addImageOverlay(src, name){
-    const p = posters[activeIndex];
-    const overlay = { id: Date.now()+Math.random(), type:'image', src, name, x: p.width/2, y: p.height*0.25, w: Math.min(200, p.width*0.18), h: null };
-    p.overlays.push(overlay);
-    updateOverlaySelect();
-    selectOverlay.value = String(p.overlays.length-1);
-    loadActivePosterToUI();
-    render();
-  }
-
-  // render assets UI using window.assets (from assets.js)
-  function renderAssets(){
-    if(!assetsListEl) return;
-    assetsListEl.innerHTML = '';
-    const items = window.assets || [];
-    items.forEach(a=>{
-      const btn = document.createElement('button'); btn.className='btn ghost small'; btn.title = a.name; btn.style.padding='6px'; btn.style.display='flex'; btn.style.alignItems='center'; btn.style.justifyContent='center';
-      const img = document.createElement('img'); img.src = a.src; img.style.width='64px'; img.style.height='64px'; img.style.objectFit='contain'; img.style.background='white'; img.style.borderRadius='6px';
-      btn.appendChild(img);
-      btn.addEventListener('click', ()=> addImageOverlay(a.src, a.name));
-      assetsListEl.appendChild(btn);
-    });
-  }
-
-  // --- Init ---
-  addPoster('Poster 1');
-  renderAssets();
-
-  // wire template size selector
-  if(templateSize){ templateSize.addEventListener('change', ()=>{
-    const key = templateSize.value; const sz = getSizeForKey(key); if(!sz) return;
-    if(applyToAllChk && applyToAllChk.checked){ posters.forEach(p=> setPosterSize(p, sz.w, sz.h)); }
-    else { const p = posters[activeIndex]; if(p) setPosterSize(p, sz.w, sz.h); }
-    renderPosterList(); render();
-  }); }
-
-  // Navbar images removed per request — no logos will be populated here.
-
-  // Views: home (carousel) and results (editor)
-  const homeView = document.getElementById('homeView');
-  const resultsView = document.getElementById('resultsView');
-  const navHome = document.getElementById('navHome');
-  function showHome(){ if(homeView) homeView.style.display = 'block'; if(resultsView) resultsView.style.display = 'none'; if(navHome) navHome.classList.add('active'); }
-  // Show Results (poster editor) and hide Home
-  function showResults(){ if(homeView) homeView.style.display = 'none'; if(resultsView) resultsView.style.display = 'grid'; if(navHome) navHome.classList.remove('active'); }
-  // wire Create/Upload buttons
-  const heroCreate = document.getElementById('heroCreate');
-  const heroUploadTemplate = document.getElementById('heroUploadTemplate');
-  const uploadResultsPage = document.getElementById('uploadResultsPage');
-  const uploadResultsApply = document.getElementById('uploadResultsApply');
-  const uploadResultsCancel = document.getElementById('uploadResultsCancel');
-  const uploadFirstName = document.getElementById('uploadFirstName');
-  const uploadFirstTeam = document.getElementById('uploadFirstTeam');
-  const uploadSecondName = document.getElementById('uploadSecondName');
-  const uploadSecondTeam = document.getElementById('uploadSecondTeam');
-  const uploadThirdName = document.getElementById('uploadThirdName');
-  const uploadThirdTeam = document.getElementById('uploadThirdTeam');
-  const uploadCategory = document.getElementById('uploadCategory');
-  const uploadProgram = document.getElementById('uploadProgram');
-  const uploadApplyToAll = document.getElementById('uploadApplyToAll');
-
-  // Show the upload results form instead of jumping straight to editor
-  if(heroCreate) heroCreate.addEventListener('click', ()=>{
-    if(uploadResultsPage) { uploadResultsPage.style.display = 'block'; if(homeView) homeView.style.display='none'; }
-  });
-  if(heroUploadTemplate && document.getElementById('navTemplate')) heroUploadTemplate.addEventListener('click', ()=> document.getElementById('navTemplate').click());
-  if(navHome) navHome.addEventListener('click', showHome);
-
-  // Facility card settings buttons: results UI removed — stay on Home; allow template upload
-  document.querySelectorAll('.card-settings').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const action = btn.dataset.action;
-      showHome();
-      if(action === 'templates' && document.getElementById('navTemplate')) document.getElementById('navTemplate').click();
-    });
-  });
-
-  // UI bindings
-  addPosterBtn.addEventListener('click', ()=> addPoster());
-  removePosterBtn.addEventListener('click', ()=> removePoster(activeIndex));
-  duplicateBtn.addEventListener('click', ()=> duplicatePoster(activeIndex));
-
-  if(navUploadBtn && document.getElementById('navTemplate')){ navUploadBtn.addEventListener('click', ()=> document.getElementById('navTemplate').click()); }
-  const navTemplateEl = document.getElementById('navTemplate');
-  if(navTemplateEl) navTemplateEl.addEventListener('change', e=>{ const file = e.target.files[0]; if(!file) return; const url = URL.createObjectURL(file); if(applyToAllChk && applyToAllChk.checked){ posters.forEach(p=>{ p.bgSrc = url; p.bgImage = new Image(); p.bgImage.src = url; }); } else { const p = posters[activeIndex]; p.bgSrc = url; p.bgImage = new Image(); p.bgImage.onload = ()=> render(); p.bgImage.src = url; } render(); });
-
-  if(openSettingsBtn) openSettingsBtn.addEventListener('click', ()=> settingsPanel.style.display = 'block');
-  const closeSettingsBtn = document.getElementById('closeSettings');
-  if(closeSettingsBtn) closeSettingsBtn.addEventListener('click', ()=> settingsPanel.style.display = 'none');
-
-  applyGlobalBtn.addEventListener('click', ()=>{ const fam = globalFont.value; const col = globalColor.value; const size = Number(globalSize.value); if(applyToAllChk.checked){ posters.forEach(p=> p.overlays.forEach(o=>{ if(o.type==='text'){ o.fontFamily = fam; o.color = col; o.fontSize = size; } })); } else { const p = posters[activeIndex]; p.overlays.forEach(o=>{ if(o.type==='text'){ o.fontFamily = fam; o.color = col; o.fontSize = size; } }); } render(); });
-
-  applyResults.addEventListener('click', ()=>{
-    if(applyToAllChk && applyToAllChk.checked){
-      posters.forEach(p=>{
-        if(p.overlays[0]) p.overlays[0].text = firstText.value || p.overlays[0].text;
-        if(p.overlays[1]) p.overlays[1].text = secondText.value || p.overlays[1].text;
-        if(p.overlays[2]) p.overlays[2].text = thirdText.value || p.overlays[2].text;
-      });
-    } else {
-      const p = posters[activeIndex]; if(!p) return;
-      if(p.overlays[0]) p.overlays[0].text = firstText.value || p.overlays[0].text;
-      if(p.overlays[1]) p.overlays[1].text = secondText.value || p.overlays[1].text;
-      if(p.overlays[2]) p.overlays[2].text = thirdText.value || p.overlays[2].text;
-    }
-    render();
-  });
-
-  // Apply names + team names (supports apply to all)
-  if(applyNamesBtn) applyNamesBtn.addEventListener('click', ()=>{
-    const vals = {
-      n1: nameFirst ? nameFirst.value : '', t1: teamFirst ? teamFirst.value : '',
-      n2: nameSecond ? nameSecond.value : '', t2: teamSecond ? teamSecond.value : '',
-      n3: nameThird ? nameThird.value : '', t3: teamThird ? teamThird.value : ''
-    };
-    if(applyToAllChk && applyToAllChk.checked){
-      posters.forEach(pp=>{
-        while(pp.overlays.length < 6){ pp.overlays.push({id:Date.now()+Math.random(), type:'text', text:'', x:400, y:400, fontSize:20, color:'#ffffff', fontFamily:'Inter'}); }
-        pp.overlays[0].text = vals.n1 || pp.overlays[0].text;
-        pp.overlays[1].text = vals.n2 || pp.overlays[1].text;
-        pp.overlays[2].text = vals.n3 || pp.overlays[2].text;
-        pp.overlays[3].text = vals.t1 || pp.overlays[3].text;
-        pp.overlays[4].text = vals.t2 || pp.overlays[4].text;
-        pp.overlays[5].text = vals.t3 || pp.overlays[5].text;
-      });
-    } else {
-      const p = posters[activeIndex]; if(!p) return;
-      while(p.overlays.length < 6){ p.overlays.push({id:Date.now()+Math.random(), type:'text', text:'', x:400, y:400, fontSize:20, color:'#ffffff', fontFamily:'Inter'}); }
-      p.overlays[0].text = vals.n1 || p.overlays[0].text;
-      p.overlays[1].text = vals.n2 || p.overlays[1].text;
-      p.overlays[2].text = vals.n3 || p.overlays[2].text;
-      p.overlays[3].text = vals.t1 || p.overlays[3].text;
-      p.overlays[4].text = vals.t2 || p.overlays[4].text;
-      p.overlays[5].text = vals.t3 || p.overlays[5].text;
-    }
-    render();
-    updateOverlaySelect();
-  });
-
-  // Upload Results form handlers
-  if(uploadResultsCancel) uploadResultsCancel.addEventListener('click', ()=>{ if(uploadResultsPage) uploadResultsPage.style.display='none'; if(homeView) homeView.style.display='block'; });
-  // backup storage so we can revert
-  let postersBackup = null;
-  let appliedFlag = false;
-  // helper: ensure image is loaded
-  function loadImage(src){ return new Promise((res,rej)=>{ if(!src) return res(null); const img = new Image(); img.crossOrigin = 'anonymous'; img.onload = ()=> res(img); img.onerror = ()=> res(null); img.src = src; }); }
-
-  // render any poster p into an offscreen canvas and return dataURL
-  async function renderPosterToDataURL(p){ const c = document.createElement('canvas'); c.width = p.width||800; c.height = p.height||1200; const cx = c.getContext('2d'); // background
-    if(p.bgSrc){ const bg = await loadImage(p.bgSrc); if(bg){ cx.drawImage(bg,0,0,c.width,c.height); } else { cx.fillStyle = '#ffffff'; cx.fillRect(0,0,c.width,c.height); } } else { cx.fillStyle = '#ffffff'; cx.fillRect(0,0,c.width,c.height); }
-    // draw overlays
-    for(const o of (p.overlays||[])){
-      if(o.type === 'image'){
-        const im = await loadImage(o.src||o.src||o.img?.src);
-        const iw = o.w || Math.min(200, c.width*0.18);
-        const ih = o.h || (im ? (iw * (im.height||1) / (im.width||1)) : iw);
-        if(im) cx.drawImage(im, o.x - iw/2, o.y - ih/2, iw, ih);
-      } else {
-        const fs = Number(o.fontSize) || 24; cx.font = `${o.bold? 'bold ' : ''}${o.italic? 'italic ' : ''}${fs}px ${o.fontFamily||'Arial'}`;
-        cx.fillStyle = o.color || '#000'; cx.textAlign = o.align || 'center'; cx.textBaseline = 'top'; cx.lineWidth = Math.max(2, Math.round(fs/18)); cx.strokeStyle = 'rgba(0,0,0,0.45)';
-        const lines = String(o.text||'').split('\n'); let y = o.y || 0; for(const line of lines){ cx.strokeText(line, o.x, y); cx.fillText(line, o.x, y); y += fs*1.1; }
-      }
-    }
-    return c.toDataURL('image/png');
-  }
-
-  // Download applied for selected posters (all if applyToAll checked)
-  async function downloadApplied(all){ const targets = all ? posters : [posters[activeIndex]]; for(let i=0;i<targets.length;i++){ const p = targets[i]; const data = await renderPosterToDataURL(p); const a = document.createElement('a'); a.href = data; const meta = ((p.category? p.category + '_' : '') + (p.program? p.program + '_' : '')).replace(/\s+/g,''); a.download = `${p.name.replace(/\s+/g,'_')}_${meta||''}.png`; document.body.appendChild(a); a.click(); a.remove(); await new Promise(r=>setTimeout(r,200)); } alert('Download started for ' + (all? targets.length : 1) + ' template(s).'); }
-
-  // revert posters from backup
-  function revertTemplates(){ if(!postersBackup) return alert('No backup available'); posters = JSON.parse(JSON.stringify(postersBackup)); // reinstate bgImage objects
-    posters.forEach(p=>{ if(p.bgSrc){ p.bgImage = new Image(); p.bgImage.onload = ()=>{}; p.bgImage.src = p.bgSrc; } }); renderPosterList(); selectPoster(0); render(); appliedFlag = false; postersBackup = null; alert('Templates reverted to original state'); }
-
-  if(uploadResultsApply) uploadResultsApply.addEventListener('click', ()=>{
-    // copy values into the settings inputs and apply
-    // backup current posters state before applying
-    if(!postersBackup) postersBackup = JSON.parse(JSON.stringify(posters));
-    appliedFlag = true;
-    if(nameFirst) nameFirst.value = uploadFirstName ? uploadFirstName.value : '';
-    if(teamFirst) teamFirst.value = uploadFirstTeam ? uploadFirstTeam.value : '';
-    if(nameSecond) nameSecond.value = uploadSecondName ? uploadSecondName.value : '';
-    if(teamSecond) teamSecond.value = uploadSecondTeam ? uploadSecondTeam.value : '';
-    if(nameThird) nameThird.value = uploadThirdName ? uploadThirdName.value : '';
-    if(teamThird) teamThird.value = uploadThirdTeam ? uploadThirdTeam.value : '';
-    // set category/program on posters (respect upload form checkbox first)
-    const cat = uploadCategory ? uploadCategory.value : '';
-    const prog = uploadProgram ? uploadProgram.value : '';
-    const shouldApplyAll = (uploadApplyToAll && uploadApplyToAll.checked) || (applyToAllChk && applyToAllChk.checked);
-    if(shouldApplyAll){ posters.forEach(pp=>{ pp.category = cat; pp.program = prog; }); } else { const p = posters[activeIndex]; if(p){ p.category = cat; p.program = prog; } }
-    // trigger existing applyNames logic
-    if(applyNamesBtn) applyNamesBtn.click();
-    // save the applied posters into Verified Results
-    try{ captureCurrentAsVerified(); }catch(e){ console.warn('failed to capture verified', e); }
-    // hide form and show home
-    if(uploadResultsPage) uploadResultsPage.style.display='none'; if(homeView) homeView.style.display='block';
-    alert('Results applied' + (shouldApplyAll ? ' to all templates.' : '.'));
-  });
-
-  // hook download and revert buttons
-  const downloadAppliedBtn = document.getElementById('downloadAppliedBtn');
-  const revertTemplatesBtn = document.getElementById('revertTemplatesBtn');
-  if(downloadAppliedBtn) downloadAppliedBtn.addEventListener('click', ()=>{ const all = (uploadApplyToAll && uploadApplyToAll.checked) || (applyToAllChk && applyToAllChk.checked); downloadApplied(all); });
-  if(revertTemplatesBtn) revertTemplatesBtn.addEventListener('click', ()=>{ if(confirm('Revert templates to original state?')) revertTemplates(); });
-
-  selectOverlay.addEventListener('change', ()=>{ const p = posters[activeIndex]; const o = p.overlays[Number(selectOverlay.value)]; overlayText.value = o.text || ''; fontFamily.value = o.fontFamily || ''; fontSize.value = o.fontSize || 48; fontColor.value = o.color || '#ffffff'; render(); });
-
-  overlayText.addEventListener('input', ()=>{ posters[activeIndex].overlays[Number(selectOverlay.value)].text = overlayText.value; render(); });
-  fontFamily.addEventListener('change', ()=>{ posters[activeIndex].overlays[Number(selectOverlay.value)].fontFamily = fontFamily.value; render(); });
-  fontSize.addEventListener('input', ()=>{ posters[activeIndex].overlays[Number(selectOverlay.value)].fontSize = Number(fontSize.value); render(); });
-  fontColor.addEventListener('input', ()=>{ posters[activeIndex].overlays[Number(selectOverlay.value)].color = fontColor.value; render(); });
-  boldBtn.addEventListener('click', ()=>{ const o=posters[activeIndex].overlays[Number(selectOverlay.value)]; o.bold = !o.bold; render(); });
-  italicBtn.addEventListener('click', ()=>{ const o=posters[activeIndex].overlays[Number(selectOverlay.value)]; o.italic = !o.italic; render(); });
-  centerBtn.addEventListener('click', ()=>{ const o=posters[activeIndex].overlays[Number(selectOverlay.value)]; o.align = o.align==='center' ? 'left' : 'center'; render(); });
-
-  // drag support
-  let dragging = null; let dragOffset = {x:0,y:0};
-  function getHitOverlay(x,y){ const p = posters[activeIndex]; for(let i=p.overlays.length-1;i>=0;i--){ const o=p.overlays[i]; if(o.type==='image'){ const iw = o.w||120; const ih = o.h||120; const left = o.x - iw/2; const top = o.y - ih/2; if(x>=left-8 && x<=left+iw+8 && y>=top-8 && y<=top+ih+8) return i; } else { ctx.font = `${o.bold? 'bold ':' '}${o.italic? 'italic ':' '}${o.fontSize}px ${o.fontFamily}`; const lines = String(o.text).split('\n'); const w = ctx.measureText(lines[0]||'').width; const h = o.fontSize*lines.length*1.1; const left = (o.align==='center') ? o.x - w/2 : (o.align==='right'? o.x-w : o.x); if(x>=left-8 && x<=left+w+8 && y>=o.y-8 && y<=o.y+h+8) return i; } } return null; }
-  canvas.addEventListener('pointerdown', e=>{ const rect=canvas.getBoundingClientRect(); const x=(e.clientX-rect.left)*(canvas.width/rect.width); const y=(e.clientY-rect.top)*(canvas.height/rect.height); const hit = getHitOverlay(x,y); if(hit!==null){ dragging=hit; const o = posters[activeIndex].overlays[hit]; dragOffset.x = x - o.x; dragOffset.y = y - o.y; selectOverlay.value = String(hit); selectOverlay.dispatchEvent(new Event('change')); } });
-  window.addEventListener('pointermove', e=>{ if(dragging===null) return; const rect=canvas.getBoundingClientRect(); const x=(e.clientX-rect.left)*(canvas.width/rect.width); const y=(e.clientY-rect.top)*(canvas.height/rect.height); const o = posters[activeIndex].overlays[dragging]; o.x = x - dragOffset.x; o.y = y - dragOffset.y; render(); });
-  window.addEventListener('pointerup', ()=> dragging = null);
-
-  downloadBtn.addEventListener('click', ()=>{ const data = canvas.toDataURL('image/png'); const a = document.createElement('a'); a.href = data; a.download = posters[activeIndex].name.replace(/\s+/g,'_') + '.png'; a.click(); });
-
-  // helper: load images if bgSrc exists
-  setInterval(()=>{ posters.forEach(p=>{ if(p.bgSrc && !p.bgImage){ p.bgImage=new Image(); p.bgImage.onload=render; p.bgImage.src=p.bgSrc; } }); },300);
-  // Verified Results storage (simple array under localStorage key)
-  const verifiedIconBtn = document.getElementById('verifiedIconBtn');
-  const verifiedResultsPage = document.getElementById('verifiedResultsPage');
-  const captureVerifiedBtn = document.getElementById('captureVerifiedBtn');
-  const verifiedListEl = document.getElementById('verifiedList');
-  const closeVerifiedBtn = document.getElementById('closeVerifiedBtn');
-
-  const VERIFIED_KEY = 'verified_results';
-  function getVerified(){ try{ const txt = localStorage.getItem(VERIFIED_KEY); return txt ? JSON.parse(txt) : []; }catch(e){ return []; } }
-  function saveVerified(arr){ localStorage.setItem(VERIFIED_KEY, JSON.stringify(arr || [])); }
-
-  function captureCurrentAsVerified(){ const snap = JSON.parse(JSON.stringify(posters)); const meta = { savedAt: Date.now(), count: snap.length, category: (snap[0] && snap[0].category) || '', program: (snap[0] && snap[0].program) || '' }; const arr = getVerified(); arr.unshift({ id: Date.now()+Math.random(), meta, posters: snap }); saveVerified(arr); listVerified(); alert('Captured current posters as verified entry'); }
-
-  function listVerified(){ if(!verifiedListEl) return; const arr = getVerified(); verifiedListEl.innerHTML = ''; if(!arr.length) { verifiedListEl.innerHTML = '<div class="muted">No verified entries yet.</div>'; return; }
-    arr.forEach((entry, idx)=>{
-      const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.padding='8px 0';
-      const left = document.createElement('div'); left.innerHTML = `<strong>Entry ${arr.length-idx}</strong><div class="muted" style="font-size:12px">${new Date(entry.meta.savedAt).toLocaleString()} • ${entry.meta.count} poster(s) ${entry.meta.category? '• '+entry.meta.category : ''} ${entry.meta.program? '• '+entry.meta.program : ''}</div>`;
-      const right = document.createElement('div'); right.style.display='flex'; right.style.gap='8px';
-      const dl = document.createElement('button'); dl.className='btn small'; dl.textContent='Download Images'; dl.addEventListener('click', ()=> downloadVerifiedImages(idx));
-      const load = document.createElement('button'); load.className='btn small ghost'; load.textContent='Load'; load.addEventListener('click', ()=>{ if(confirm('Load this verified entry into editor? This will replace current posters.')){ loadVerifiedEntry(idx); } });
-      const del = document.createElement('button'); del.className='btn small ghost'; del.textContent='Delete'; del.addEventListener('click', ()=>{ if(confirm('Delete this verified entry?')){ deleteVerifiedEntry(idx); } });
-      right.appendChild(dl); right.appendChild(load); right.appendChild(del);
-      row.appendChild(left); row.appendChild(right); verifiedListEl.appendChild(row);
-    });
-  }
-
-  async function downloadVerifiedImages(index){ const arr = getVerified(); const entry = arr[index]; if(!entry) return alert('Missing entry'); for(let i=0;i<entry.posters.length;i++){ const p = entry.posters[i]; const data = await renderPosterToDataURL(p); const a = document.createElement('a'); a.href = data; a.download = `${(p.name||'poster')}_verified_${index+1}_${i+1}.png`; document.body.appendChild(a); a.click(); a.remove(); await new Promise(r=>setTimeout(r,150)); } }
-
-  function loadVerifiedEntry(index){ const arr = getVerified(); const entry = arr[index]; if(!entry) return alert('Missing entry'); posters = JSON.parse(JSON.stringify(entry.posters)); posters.forEach(p=>{ if(p.bgSrc){ p.bgImage = new Image(); p.bgImage.onload = render; p.bgImage.src = p.bgSrc; } }); renderPosterList(); selectPoster(0); render(); }
-
-  function deleteVerifiedEntry(index){ const arr = getVerified(); arr.splice(index,1); saveVerified(arr); listVerified(); }
-
-  function clearVerifiedAll(){ if(!confirm('Clear all verified entries?')) return; saveVerified([]); listVerified(); }
-
-  if(verifiedIconBtn) verifiedIconBtn.addEventListener('click', ()=>{ if(verifiedResultsPage) verifiedResultsPage.style.display='block'; if(homeView) homeView.style.display='none'; listVerified(); });
-  if(captureVerifiedBtn) captureVerifiedBtn.addEventListener('click', ()=> captureCurrentAsVerified());
-  if(closeVerifiedBtn) closeVerifiedBtn.addEventListener('click', ()=>{ if(verifiedResultsPage) verifiedResultsPage.style.display='none'; if(homeView) homeView.style.display='block'; });
-  
-  // Simple carousel: populate slides from window.assets plus provided images
-  const carouselTrack = document.getElementById('carouselTrack');
-  const carouselPrev = document.getElementById('carouselPrev');
-  const carouselNext = document.getElementById('carouselNext');
-  if(carouselTrack){
-    // use only the provided images for the carousel
-    const carouselSources = [
-      'results/img1.svg',
-      'results/img2.svg',
-      'results/img3.svg'
-    ];
-
-    let slides = [];
-    let current = 0;
-    let autoplayInterval = 4500;
-    let autoplayTimer = null;
-
-    const dotsWrap = document.createElement('div'); dotsWrap.className = 'carousel-dots';
-    function updateDots(){ dotsWrap.innerHTML = ''; slides.forEach((_,i)=>{ const d = document.createElement('div'); d.className='carousel-dot' + (i===current? ' active':''); d.addEventListener('click', ()=> showSlide(i)); dotsWrap.appendChild(d); }); }
-
-    function showSlide(i){ if(!slides.length) return; current = (i+slides.length)%slides.length; carouselTrack.style.transform = `translateX(-${current*100}%)`; updateDots(); }
-
-    function populateCarousel(){
-      carouselTrack.innerHTML = '';
-      carouselSources.forEach(src=>{
-        const slide = document.createElement('div'); slide.className = 'slide';
-        const img = document.createElement('img'); img.src = src; img.alt = '';
-        slide.appendChild(img);
-        carouselTrack.appendChild(slide);
-      });
-      // attach dots below track
-      carouselTrack.parentNode.appendChild(dotsWrap);
-      slides = Array.from(carouselTrack.querySelectorAll('.slide'));
-      slides.forEach(s=>{ const img = s.querySelector('img'); if(img) img.addEventListener('click', ()=>{ addImageOverlay(img.src, img.alt || 'carousel'); }); });
-      updateDots();
-      showSlide(0);
-      startAutoplay();
+    function navigateToStep(stepIndex) {
+        document.querySelector(`.step-nav[data-step="${stepIndex}"]`).click();
     }
 
-    function startAutoplay(){ stopAutoplay(); autoplayTimer = setInterval(()=> showSlide(current+1), autoplayInterval); }
-    function stopAutoplay(){ if(autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; } }
+    // Next Step Buttons
+    document.querySelectorAll('.next-step-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const target = e.target.dataset.target || e.target.closest('button').dataset.target;
+            if (target) navigateToStep(target);
+        });
+    });
 
-    if(carouselPrev) carouselPrev.addEventListener('click', ()=> { showSlide(current-1); stopAutoplay(); });
-    if(carouselNext) carouselNext.addEventListener('click', ()=> { showSlide(current+1); stopAutoplay(); });
-    // pause on hover
-    carouselTrack.parentNode.addEventListener('mouseenter', ()=> stopAutoplay());
-    carouselTrack.parentNode.addEventListener('mouseleave', ()=> startAutoplay());
-    populateCarousel();
-  }
+    // --- Initialization ---
+    function init() {
+        // Load template config from localStorage
+        const savedConfig = localStorage.getItem('template_config');
+        if (savedConfig) {
+            try {
+                const parsed = JSON.parse(savedConfig);
+                templateConfig.bgSrc = parsed.bgSrc || templateConfig.bgSrc;
+                templateConfig.width = parsed.width || templateConfig.width;
+                templateConfig.height = parsed.height || templateConfig.height;
+                // Merge zones so we don't lose any default properties if older config format
+                if (parsed.zones && parsed.zones.length > 0) {
+                    templateConfig.zones = parsed.zones;
+                }
+
+                if (templateConfig.bgSrc) {
+                    templateImage = new Image();
+                    templateImage.crossOrigin = 'anonymous';
+                    templateImage.onload = () => {
+                        templateEditorArea.style.display = 'grid';
+                        renderTemplatePreview();
+                    };
+                    templateImage.src = templateConfig.bgSrc;
+                    offscreenTemplateImg.src = templateConfig.bgSrc;
+                }
+            } catch (e) { console.warn("Could not parse saved template config", e); }
+        }
+        
+        populateZoneButtons();
+        updateQueueUI();
+    }
+
+    // --- Step 1: Template Editor Logic ---
+    
+    uploadTemplateBtn.addEventListener('click', () => templateFileInput.click());
+    
+    templateFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const dataUrl = event.target.result;
+            templateConfig.bgSrc = dataUrl;
+            
+            templateImage = new Image();
+            templateImage.crossOrigin = 'anonymous';
+            templateImage.onload = () => {
+                templateConfig.width = templateImage.width;
+                templateConfig.height = templateImage.height;
+                templateEditorArea.style.display = 'grid';
+                offscreenTemplateImg.src = dataUrl;
+                renderTemplatePreview();
+                saveTemplate();
+            };
+            templateImage.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    saveTemplateBtn.addEventListener('click', saveTemplate);
+
+    function saveTemplate() {
+        if (!templateConfig.bgSrc) return alert("Please upload a template image first.");
+        try {
+            localStorage.setItem('template_config', JSON.stringify(templateConfig));
+            alert('Template configuration saved successfully!');
+        } catch (e) {
+            alert('Error saving template. Image might be too large for local storage.');
+            console.error(e);
+        }
+    }
+
+    if (resetLayoutBtn) {
+        resetLayoutBtn.addEventListener('click', () => {
+            if (confirm("Reset layout back to defaults? This will clear your custom text positions.")) {
+                const currentBg = templateConfig.bgSrc;
+                templateConfig = JSON.parse(JSON.stringify(defaultTemplateConfig));
+                templateConfig.bgSrc = currentBg; // preserve background
+                localStorage.removeItem('template_config');
+                populateZoneButtons();
+                renderTemplatePreview();
+                alert("Layout reset!");
+            }
+        });
+    }
+
+    function populateZoneButtons() {
+        if (!zoneButtonGrid) return;
+        zoneButtonGrid.innerHTML = '';
+        templateConfig.zones.forEach((z, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'zone-btn' + (index === activeZoneIndex ? ' active' : '');
+            btn.textContent = z.label;
+            btn.dataset.index = index;
+            btn.addEventListener('click', (e) => {
+                activeZoneIndex = parseInt(e.target.dataset.index);
+                updateZoneButtonStates();
+                loadZoneSettings(activeZoneIndex);
+                renderTemplatePreview();
+            });
+            zoneButtonGrid.appendChild(btn);
+        });
+        loadZoneSettings(activeZoneIndex);
+    }
+
+    let activeZoneIndex = 0;
+
+    function updateZoneButtonStates() {
+        if (!zoneButtonGrid) return;
+        const btns = zoneButtonGrid.querySelectorAll('.zone-btn');
+        btns.forEach(b => {
+            const idx = parseInt(b.dataset.index);
+            const z = templateConfig.zones[idx];
+            if (idx === activeZoneIndex) b.classList.add('active');
+            else b.classList.remove('active');
+            if (z.visible === false) b.classList.add('hidden-zone');
+            else b.classList.remove('hidden-zone');
+        });
+    }
+
+    function loadZoneSettings(index) {
+        const zone = templateConfig.zones[index];
+        if (!zone) return;
+        zoneFontFamily.value = zone.fontFamily;
+        zoneFontSize.value = zone.fontSize;
+        zoneColor.value = zone.color;
+        zoneAlign.value = zone.align;
+        zoneX.value = Math.round(zone.x);
+        zoneY.value = Math.round(zone.y);
+        zoneVisibleToggle.checked = zone.visible !== false;
+        
+        zoneBoldBtn.style.background = zone.bold ? 'rgba(255,255,255,0.2)' : '';
+        zoneItalicBtn.style.background = zone.italic ? 'rgba(255,255,255,0.2)' : '';
+    }
+
+    // Zone Settings Handlers
+    zoneFontFamily.addEventListener('change', e => { templateConfig.zones[activeZoneIndex].fontFamily = e.target.value; renderTemplatePreview(); });
+    zoneFontSize.addEventListener('input', e => { templateConfig.zones[activeZoneIndex].fontSize = parseInt(e.target.value); renderTemplatePreview(); });
+    zoneColor.addEventListener('input', e => { templateConfig.zones[activeZoneIndex].color = e.target.value; renderTemplatePreview(); });
+    zoneAlign.addEventListener('change', e => { templateConfig.zones[activeZoneIndex].align = e.target.value; renderTemplatePreview(); });
+    zoneBoldBtn.addEventListener('click', () => { 
+        const z = templateConfig.zones[activeZoneIndex]; 
+        z.bold = !z.bold; 
+        loadZoneSettings(activeZoneIndex); 
+        renderTemplatePreview(); 
+    });
+    zoneItalicBtn.addEventListener('click', () => { 
+        const z = templateConfig.zones[activeZoneIndex]; 
+        z.italic = !z.italic; 
+        loadZoneSettings(activeZoneIndex); 
+        renderTemplatePreview(); 
+    });
+    zoneX.addEventListener('input', e => { templateConfig.zones[activeZoneIndex].x = parseInt(e.target.value) || 0; renderTemplatePreview(); });
+    zoneY.addEventListener('input', e => { templateConfig.zones[activeZoneIndex].y = parseInt(e.target.value) || 0; renderTemplatePreview(); });
+    zoneVisibleToggle.addEventListener('change', e => { 
+        templateConfig.zones[activeZoneIndex].visible = e.target.checked; 
+        updateZoneButtonStates(); 
+        renderTemplatePreview(); 
+    });
+    if(showGridToggle) showGridToggle.addEventListener('change', renderTemplatePreview);
+
+    if(alignLeftEdgeBtn) alignLeftEdgeBtn.addEventListener('click', () => { templateConfig.zones[activeZoneIndex].align = 'left'; loadZoneSettings(activeZoneIndex); renderTemplatePreview(); });
+    if(alignCenterBtn) alignCenterBtn.addEventListener('click', () => { templateConfig.zones[activeZoneIndex].align = 'center'; loadZoneSettings(activeZoneIndex); renderTemplatePreview(); });
+    if(alignRightEdgeBtn) alignRightEdgeBtn.addEventListener('click', () => { templateConfig.zones[activeZoneIndex].align = 'right'; loadZoneSettings(activeZoneIndex); renderTemplatePreview(); });
+
+    // Rendering Canvas Preview
+    function renderTemplatePreview() {
+        if (!ctx || !templateImage) return;
+        
+        canvas.width = templateConfig.width;
+        canvas.height = templateConfig.height;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
+
+        if (showGridToggle && showGridToggle.checked) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for (let i = 0; i < canvas.height; i += 50) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
+            ctx.restore();
+        }
+
+        templateConfig.zones.forEach((z, index) => {
+            if (z.visible === false) return;
+            const font = `${z.bold ? 'bold ' : ''}${z.italic ? 'italic ' : ''}${z.fontSize}px "${z.fontFamily}"`;
+            ctx.font = font;
+            ctx.fillStyle = z.color;
+            ctx.textAlign = z.align;
+            ctx.textBaseline = 'middle';
+            
+            // Get live value from form or fallback to label
+            let val = z.label;
+            const inputEl = document.getElementById('res' + z.id.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(''));
+            // Exception for category/program mapping
+            let liveVal = '';
+            if (z.id === 'category') liveVal = resCategory.value;
+            else if (z.id === 'program') liveVal = resProgram.value;
+            else if (z.id === 'first_name') liveVal = resFirst.value;
+            else if (z.id === 'first_team') liveVal = resFirstTeam.value;
+            else if (z.id === 'second_name') liveVal = resSecond.value;
+            else if (z.id === 'second_team') liveVal = resSecondTeam.value;
+            else if (z.id === 'third_name') liveVal = resThird.value;
+            else if (z.id === 'third_team') liveVal = resThirdTeam.value;
+            
+            if (liveVal && liveVal.trim() !== '') val = liveVal.trim();
+            
+            const lines = String(val).split('\n');
+            let drawY = z.y;
+            
+            // Draw text
+            lines.forEach(line => {
+                ctx.fillText(line.trim(), z.x, drawY);
+                drawY += z.fontSize * 1.2;
+            });
+            
+            // Draw highlight box if active
+            if (index === activeZoneIndex) {
+                const metrics = ctx.measureText(lines[0]);
+                const w = metrics.width;
+                const h = z.fontSize * 1.2;
+                let left = z.x;
+                if (z.align === 'center') left = z.x - w/2;
+                else if (z.align === 'right') left = z.x - w;
+                
+                ctx.save();
+                ctx.strokeStyle = '#7c3aed';
+                ctx.setLineDash([5, 5]);
+                ctx.lineWidth = 2;
+                ctx.strokeRect(left - 5, z.y - h/2 - 5, w + 10, h + 10);
+                
+                // Draw anchor point (red dot) so user understands alignment
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(z.x, z.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        });
+    }
+
+    // Canvas Dragging Logic
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        // Find clicked zone (reverse order for top-most)
+        for (let i = templateConfig.zones.length - 1; i >= 0; i--) {
+            const z = templateConfig.zones[i];
+            ctx.font = `${z.bold ? 'bold ' : ''}${z.italic ? 'italic ' : ''}${z.fontSize}px "${z.fontFamily}"`;
+            const metrics = ctx.measureText(z.label);
+            const w = metrics.width;
+            const h = z.fontSize * 1.2;
+            let left = z.x;
+            if (z.align === 'center') left = z.x - w/2;
+            else if (z.align === 'right') left = z.x - w;
+
+            if (x >= left - 10 && x <= left + w + 10 && y >= z.y - h/2 - 10 && y <= z.y + h/2 + 10) {
+                activeZoneIndex = i;
+                updateZoneButtonStates();
+                loadZoneSettings(i);
+                isDragging = true;
+                dragOffsetX = x - z.x;
+                dragOffsetY = y - z.y;
+                renderTemplatePreview();
+                break;
+            }
+        }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        let newX = x - dragOffsetX;
+        let newY = y - dragOffsetY;
+        
+        // Smart Snapping logic (snap to other zones)
+        let snapped = false;
+        templateConfig.zones.forEach((z, i) => {
+            if (i === activeZoneIndex || z.visible === false) return;
+            // Snap X
+            if (Math.abs(newX - z.x) < 15) { newX = z.x; snapped = true; }
+            // Snap Y
+            if (Math.abs(newY - z.y) < 15) { newY = z.y; snapped = true; }
+        });
+        
+        // Absolute center snap
+        const centerX = templateConfig.width / 2;
+        const centerY = templateConfig.height / 2;
+        if (Math.abs(newX - centerX) < 25) newX = centerX;
+        if (Math.abs(newY - centerY) < 25) newY = centerY;
+        
+        templateConfig.zones[activeZoneIndex].x = newX;
+        templateConfig.zones[activeZoneIndex].y = newY;
+        if(zoneX) zoneX.value = Math.round(templateConfig.zones[activeZoneIndex].x);
+        if(zoneY) zoneY.value = Math.round(templateConfig.zones[activeZoneIndex].y);
+        renderTemplatePreview();
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDragging) saveTemplate();
+        isDragging = false;
+    });
+
+
+    // --- Step 2: Form & Queue Logic ---
+
+    function clearForm() {
+        resFirst.value = ''; resFirstTeam.value = '';
+        resSecond.value = ''; resSecondTeam.value = '';
+        resThird.value = ''; resThirdTeam.value = '';
+        resFirst.focus();
+    }
+    
+    clearFormBtn.addEventListener('click', clearForm);
+
+    if (uploadCsvBtn) {
+        uploadCsvBtn.addEventListener('click', () => csvFileInput.click());
+        csvFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const text = ev.target.result;
+                const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+                if (lines.length < 2) { alert('CSV needs a header row and at least one data row.'); return; }
+                const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+                
+                let addedCount = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    const rowText = lines[i];
+                    // Simple split by comma, ignoring commas within quotes
+                    const cols = [];
+                    let inQuotes = false, curr = '';
+                    for(let char of rowText) {
+                        if(char === '"') inQuotes = !inQuotes;
+                        else if(char === ',' && !inQuotes) { cols.push(curr); curr = ''; }
+                        else curr += char;
+                    }
+                    cols.push(curr);
+                    const row = cols.map(c => c.trim());
+                    
+                    const res = {};
+                    const zoneMappingKeys = [
+                        { id: 'category', aliases: ['category', 'event'] },
+                        { id: 'program', aliases: ['program', 'group', 'section'] },
+                        { id: 'first_name', aliases: ['1st', 'first', 'name 1', 'winner'] },
+                        { id: 'first_team', aliases: ['1st team', 'first team', 'team 1'] },
+                        { id: 'second_name', aliases: ['2nd', 'second', 'name 2', 'runner'] },
+                        { id: 'second_team', aliases: ['2nd team', 'second team', 'team 2'] },
+                        { id: 'third_name', aliases: ['3rd', 'third', 'name 3'] },
+                        { id: 'third_team', aliases: ['3rd team', 'third team', 'team 3'] }
+                    ];
+                    
+                    let mappedCols = new Set();
+                    zoneMappingKeys.forEach(zk => {
+                        let headerIdx = headers.findIndex(h => zk.aliases.some(a => h.includes(a)));
+                        if(headerIdx !== -1 && row[headerIdx]) {
+                            res[zk.id] = row[headerIdx];
+                            mappedCols.add(headerIdx);
+                        }
+                    });
+                    
+                    // Fallback to sequential if few headers matched
+                    if (mappedCols.size < 2) {
+                        const fallbackKeys = templateConfig.zones.filter(z => z.visible !== false).map(z => z.id);
+                        fallbackKeys.forEach((key, idx) => {
+                            if (row[idx] && !res[key]) res[key] = row[idx];
+                        });
+                    }
+                    
+                    if (Object.keys(res).length > 0) {
+                        res.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+                        resultsQueue.push(res);
+                        addedCount++;
+                    }
+                }
+                updateQueueUI();
+                alert(`Successfully imported ${addedCount} results from CSV!`);
+                csvFileInput.value = '';
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    addResultBtn.addEventListener('click', () => {
+        const result = {
+            id: Date.now().toString(),
+            category: resCategory.value.trim(),
+            program: resProgram.value.trim(),
+            first_name: resFirst.value.trim(),
+            first_team: resFirstTeam.value.trim(),
+            second_name: resSecond.value.trim(),
+            second_team: resSecondTeam.value.trim(),
+            third_name: resThird.value.trim(),
+            third_team: resThirdTeam.value.trim()
+        };
+        
+        // Simple validation: Ensure at least one field has data
+        if (!result.first_name && !result.category && !result.program) {
+            return alert("Please enter at least some details.");
+        }
+
+        resultsQueue.push(result);
+        updateQueueUI();
+        clearForm(); // Keep category/program, clear names
+    });
+
+    function removeResult(id) {
+        resultsQueue = resultsQueue.filter(r => r.id !== id);
+        updateQueueUI();
+    }
+
+    function updateQueueUI() {
+        queueCount.textContent = resultsQueue.length;
+        queueList.innerHTML = '';
+        
+        if (resultsQueue.length === 0) {
+            queueList.innerHTML = '<div class="muted" style="padding:20px; text-align:center;">Queue is empty.</div>';
+            generateAllBtn.disabled = true;
+            return;
+        }
+
+        generateAllBtn.disabled = false;
+        
+        resultsQueue.forEach((res, i) => {
+            const item = document.createElement('div');
+            item.className = 'queue-item';
+            
+            let title = res.first_name || 'No Name';
+            if (res.category || res.program) title += ` - ${res.category} ${res.program}`;
+            
+            item.innerHTML = `
+                <div>
+                    <h4>Event ${i+1}: ${title}</h4>
+                    <div class="muted">1st: ${res.first_name||'-'}, 2nd: ${res.second_name||'-'}, 3rd: ${res.third_name||'-'}</div>
+                </div>
+                <button class="btn ghost small remove-btn" data-id="${res.id}">Remove</button>
+            `;
+            queueList.appendChild(item);
+        });
+
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => removeResult(e.target.dataset.id));
+        });
+    }
+
+
+    // --- Step 3: Batch Generation & Gallery Logic ---
+
+    // Renders a single poster offscreen and returns DataURL
+    async function renderSinglePosterDataURL(result) {
+        await document.fonts.ready; // Ensure custom fonts are fully loaded to fix alignment issues
+        const oc = document.createElement('canvas');
+        oc.width = templateConfig.width;
+        oc.height = templateConfig.height;
+        const octx = oc.getContext('2d');
+        
+        // Draw background
+        if (offscreenTemplateImg.src && offscreenTemplateImg.complete) {
+            octx.drawImage(offscreenTemplateImg, 0, 0, oc.width, oc.height);
+        } else {
+            octx.fillStyle = '#ffffff';
+            octx.fillRect(0, 0, oc.width, oc.height);
+        }
+
+        templateConfig.zones.forEach(z => {
+            if (z.visible === false) return;
+            const val = result[z.id] || '';
+            if (!val) return; // skip if no data
+
+            octx.font = `${z.bold ? 'bold ' : ''}${z.italic ? 'italic ' : ''}${z.fontSize}px "${z.fontFamily}"`;
+            octx.fillStyle = z.color;
+            octx.textAlign = z.align;
+            octx.textBaseline = 'middle';
+            
+            // basic multi-line handling if needed
+            const lines = String(val).split('\n');
+            let drawY = z.y;
+            // Adjust starting Y if multiple lines to keep it roughly centered, but let's keep it simple
+            if (z.align === 'center') {
+              // already middle aligned but let's just use default stroke for simplicity
+            }
+            
+            lines.forEach(line => {
+                octx.fillText(line, z.x, drawY);
+                drawY += z.fontSize * 1.2;
+            });
+        });
+
+        return oc.toDataURL('image/png');
+    }
+
+    generateAllBtn.addEventListener('click', async () => {
+        if (!templateConfig.bgSrc) return alert("Please setup the template in Step 1 first.");
+        if (resultsQueue.length === 0) return;
+
+        navigateToStep(3);
+        
+        progressArea.style.display = 'block';
+        galleryGrid.innerHTML = '';
+        generatedPosters = [];
+        downloadZipBtn.disabled = true;
+
+        for (let i = 0; i < resultsQueue.length; i++) {
+            const res = resultsQueue[i];
+            
+            // Update progress
+            progressText.textContent = `Generating ${i+1} of ${resultsQueue.length}...`;
+            progressFill.style.width = `${((i+1)/resultsQueue.length)*100}%`;
+            
+            // Render
+            const dataUrl = await renderSinglePosterDataURL(res);
+            generatedPosters.push({ result: res, dataUrl });
+            
+            // Append to gallery incrementally
+            appendGalleryItem(res, dataUrl, i);
+
+            // Yield to browser UI thread
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        progressText.innerHTML = `Done! Generated ${resultsQueue.length} posters. <button id="inlineDownloadZipBtn" class="btn" style="margin-left: 12px; padding: 6px 12px; font-size: 13px;">Download All as ZIP</button>`;
+        
+        document.getElementById('inlineDownloadZipBtn').addEventListener('click', () => {
+            downloadZipBtn.click();
+        });
+        downloadZipBtn.disabled = false;
+        
+        // Clear queue after successful generation
+        resultsQueue = [];
+        updateQueueUI();
+    });
+
+    function appendGalleryItem(res, dataUrl, index) {
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        
+        const title = `${res.category||'Event'}_${res.program||'Prog'}_${index+1}`.replace(/\s+/g, '_');
+        
+        item.innerHTML = `
+            <img src="${dataUrl}" alt="Poster Preview">
+            <div class="gallery-item-footer">
+                <span class="title" title="${title}">${title}</span>
+                <button class="btn ghost small dl-single" data-idx="${index}">Download Image</button>
+            </div>
+        `;
+        galleryGrid.appendChild(item);
+
+        item.querySelector('.dl-single').addEventListener('click', () => {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `${title}.png`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        });
+    }
+
+    clearGalleryBtn.addEventListener('click', () => {
+        if(!confirm("Clear all generated posters?")) return;
+        generatedPosters = [];
+        galleryGrid.innerHTML = '<div class="muted" style="padding:20px; grid-column:1/-1; text-align:center;">No posters generated yet.</div>';
+        progressArea.style.display = 'none';
+        downloadZipBtn.disabled = true;
+    });
+
+    // JSZip Export
+    downloadZipBtn.addEventListener('click', () => {
+        if (generatedPosters.length === 0) return;
+        if (typeof JSZip === 'undefined') return alert('JSZip library not loaded. Please ensure you have an internet connection.');
+
+        downloadZipBtn.textContent = 'Zipping...';
+        downloadZipBtn.disabled = true;
+
+        const zip = new JSZip();
+        const folder = zip.folder("Results_Posters");
+
+        generatedPosters.forEach((p, i) => {
+            const title = `${p.result.category||'Event'}_${p.result.program||'Prog'}_${i+1}`.replace(/\s+/g, '_');
+            const dataIdx = p.dataUrl.indexOf("base64,") + 7;
+            const b64Data = p.dataUrl.substring(dataIdx);
+            folder.file(`${title}.png`, b64Data, {base64: true});
+        });
+
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(content);
+            a.download = "Results_Posters_Bulk.zip";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            
+            downloadZipBtn.textContent = 'Download All as ZIP';
+            downloadZipBtn.disabled = false;
+        });
+    });
+
+    // Run init
+    init();
 });

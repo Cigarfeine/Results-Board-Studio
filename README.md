@@ -1,22 +1,38 @@
 Results Poster Studio
 
-Simple multi-poster editor (single-page) to create result posters.
+Bulk competition result poster generator. Upload one template, enter results, auto-generate 200+ posters.
 
 Project structure:
-- index.html
-- css/style.css
-- js/app.js
-- js/assets.js
-- assets/ (not used; assets are embedded in js/assets.js)
+- index.html              — Main single-page application
+- css/style.css           — Dark glassmorphic theme
+- js/app.js               — Core engine (template config, form queue, batch render, ZIP export)
+- js/assets.js            — Embedded decorative assets
+- navbar.html/            — Shared navigation bar fragment
+- results/                — Carousel placeholder images
+- .agents/AGENTS.md       — Agent rules (context preservation for multi-model workflows)
+- .agents/skills/         — Project skill documentation
 
 How to use:
-1. Open `index.html` in a browser.
-2. Use the left panel to add/choose posters.
-3. Upload a template using the navbar button (applies to active poster or all if Settings option enabled).
-4. Use the right panel to enter first/second/third team names and style overlays.
-5. Open Settings to add Kerala-themed elements (Nilavilakku, book, palm) and click an asset to insert it into the poster.
-6. Drag elements on the canvas, style text, and click Download to export PNG.
+1. Open `index.html` in a browser (or serve with `npx http-server . -p 8080`).
+2. Step 1 — Upload a template poster image and configure text zone positions.
+3. Step 2 — Enter results one at a time using the form. Click "Add & Next" to queue each result.
+4. Step 3 — Click "Generate All" to batch-create posters. Review in the gallery and download as ZIP.
+
+Data fields per result:
+- Category (e.g., "Essay Writing")
+- Program (e.g., "Senior Division")
+- 1st Prize Name + Team
+- 2nd Prize Name + Team
+- 3rd Prize Name + Team
+
+Tech stack:
+- HTML5, CSS3, Vanilla JavaScript
+- Canvas API for poster rendering
+- JSZip (CDN) for batch ZIP downloads
+- localStorage for template config persistence
 
 Notes:
-- This is a simple client-side editor intended for offline use.
-- If you want saving/loading of posters or higher-quality exports, I can add JSON save/load and server-side rendering.
+- This is a client-side only tool — no server required.
+- Template config is saved in localStorage and persists across sessions.
+- Generated poster images are held in memory only (not persisted).
+- For agent/AI context: read `.agents/AGENTS.md` and `.agents/skills/results-poster-studio/SKILL.md` before making changes.
